@@ -388,6 +388,6 @@ MIT — see [LICENSE](LICENSE) if present, or add your preferred license before 
 
 ## Author
 
-**[TruptiKanade09](https://github.com/TruptiKanade09)**
+**Trupti Gajendra Kanade** — [@TruptiKanade09](https://github.com/TruptiKanade09)
 
 If this project helped you, consider giving the repo a star.
