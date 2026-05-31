@@ -380,12 +380,6 @@ Copy/adapt for LinkedIn, resume, or README:
 
 ---
 
-## License
-
-MIT — see [LICENSE](LICENSE) if present, or add your preferred license before publishing.
-
----
-
 ## Author
 
 **Trupti Gajendra Kanade** — [@TruptiKanade09](https://github.com/TruptiKanade09)
