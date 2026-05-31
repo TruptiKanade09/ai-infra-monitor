@@ -1,0 +1,141 @@
+groups:
+  # ── Infrastructure Alerts ─────────────────────────────────────────────────
+  - name: infrastructure
+    rules:
+
+      # Node is completely unreachable
+      - alert: NodeDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node {{ $labels.instance }} is DOWN"
+          description: "{{ $labels.instance }} has been unreachable for more than 1 minute. Training jobs may have failed."
+
+      # CPU critically high for sustained period
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value | printf \"%.1f\" }}% (threshold: 90%) for 5+ minutes."
+
+      # Memory nearly exhausted
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Memory on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | printf \"%.1f\" }}% (threshold: 85%)."
+
+      # OOM risk
+      - alert: CriticalMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 95
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CRITICAL Memory on {{ $labels.instance }}"
+          description: "Memory at {{ $value | printf \"%.1f\" }}%. OOM kill imminent."
+
+      # Disk running out
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Only {{ $value | printf \"%.1f\" }}% disk space remaining on /."
+
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CRITICAL disk space on {{ $labels.instance }}"
+          description: "Only {{ $value | printf \"%.1f\" }}% disk space remaining. Training checkpoints may fail to save."
+
+  # ── GPU Alerts ────────────────────────────────────────────────────────────
+  - name: gpu
+    rules:
+
+      # GPU temperature too high (thermal throttling risk)
+      - alert: GPUHighTemperature
+        expr: gpu_temperature_celsius > 85
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GPU {{ $labels.gpu_id }} overheating on {{ $labels.instance }}"
+          description: "GPU temperature is {{ $value }}°C (threshold: 85°C). Check cooling."
+
+      - alert: GPUCriticalTemperature
+        expr: gpu_temperature_celsius > 95
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "CRITICAL: GPU {{ $labels.gpu_id }} thermal emergency"
+          description: "GPU temperature at {{ $value }}°C. Hardware damage risk. Immediate action required."
+
+      # GPU memory exhausted
+      - alert: GPUMemoryHigh
+        expr: gpu_memory_used_percent > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GPU {{ $labels.gpu_id }} memory almost full"
+          description: "GPU memory at {{ $value | printf \"%.1f\" }}%. Reduce batch size to avoid OOM."
+
+      # Training job appears stalled (GPU was busy, now idle)
+      - alert: TrainingJobPossiblyFailed
+        expr: |
+          (gpu_utilization_percent offset 10m > 70)
+          and
+          (gpu_utilization_percent < 10)
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Training job may have crashed on GPU {{ $labels.gpu_id }}"
+          description: "GPU {{ $labels.gpu_id }} dropped from >70% to {{ $value | printf \"%.1f\" }}% utilization. Possible CUDA error or worker crash."
+
+      # GPU exporter itself went down
+      - alert: GPUExporterDown
+        expr: up{job="gpu-exporter"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GPU exporter is down"
+          description: "Cannot collect GPU metrics. GPU health unknown."
+
+  # ── Training Job Alerts ───────────────────────────────────────────────────
+  - name: training
+    rules:
+
+      - alert: TrainingLossNotDecreasing
+        expr: increase(training_loss[30m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Training loss not decreasing for job {{ $labels.job_name }}"
+          description: "Loss has increased or stalled for 30+ minutes. Consider adjusting learning rate."
+
+      - alert: TrainingJobStuck
+        expr: rate(training_step_total[10m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Training job {{ $labels.job_name }} appears stuck"
+          description: "No training steps recorded for 5+ minutes."

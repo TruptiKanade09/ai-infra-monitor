@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir prometheus-client==0.19.0 numpy==1.26.4
+
+COPY training_simulator.py .
+
+ENV PORT=8001
+ENV JOB_NAME=bert-finetuning
+ENV EPOCHS=100
+ENV MATRIX_SIZE=256
+
+EXPOSE 8001
+
+CMD ["python", "training_simulator.py"]

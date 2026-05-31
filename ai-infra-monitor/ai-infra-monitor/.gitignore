@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Archives (don't commit downloaded tarballs)
+*.tar.gz
+*.zip
+
+# Docker local overrides (optional)
+docker-compose.override.yml

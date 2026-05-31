@@ -1,0 +1,54 @@
+global:
+  scrape_interval: 15s          # Pull metrics every 15 seconds
+  evaluation_interval: 15s      # Evaluate alert rules every 15 seconds
+  scrape_timeout: 10s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load alert rules
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Host metrics (CPU, RAM, Disk, Network)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+)(:[0-9]+)?'
+        replacement: '${1}'
+
+  # Simulated GPU metrics
+  - job_name: 'gpu-exporter'
+    static_configs:
+      - targets: ['gpu-exporter:8000']
+    metrics_path: '/metrics'
+
+  # Training job metrics
+  - job_name: 'training-simulator'
+    static_configs:
+      - targets: ['training-simulator:8001']
+    metrics_path: '/metrics'
+
+  # ── Multi-node simulation (add more nodes here) ──────────────────────────
+  # Uncomment when you spin up additional VMs with Multipass/VirtualBox
+  #
+  # - job_name: 'worker-nodes'
+  #   static_configs:
+  #     - targets:
+  #         - '192.168.1.101:9100'   # node2
+  #         - '192.168.1.102:9100'   # node3
+  #   labels:
+  #     cluster: 'ai-training-cluster'
